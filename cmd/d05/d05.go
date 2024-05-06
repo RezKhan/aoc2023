@@ -15,28 +15,40 @@ type TransformMap struct {
 	maprange    int
 }
 
-func linesToTransformMaps(lines []string, searchstr string) []TransformMap {
-	start := slices.Index(lines, searchstr) + 1
-	var tmap []TransformMap
+func linesToTransformMaps (lines []string) [][]TransformMap {
+	tname := ""
+	tmLayer := 0
+	var transformMaps [][]TransformMap
+	var emptyMaps []TransformMap
 
-	for _, line := range lines[start:] {
-		if strings.TrimSpace(line) == "" {
-			break
+	transformMaps = append(transformMaps, emptyMaps)
+	for _, line := range lines {
+		if strings.Contains(line, ":") {
+			tname = line
+			continue
 		}
+		
+		if strings.TrimSpace(line) == "" {
+			tmLayer++
+			transformMaps = append(transformMaps, emptyMaps)
+			continue
+		}
+
 		valuesStr := strings.Split(line, " ")
 		n := make([]int, len(valuesStr))
 		for i, value := range valuesStr {
 			n[i], _ = strconv.Atoi(value)
 		}
-		tmp := TransformMap{
-			name:        searchstr,
+		tmap := TransformMap{
+			name:        tname,
 			destination: n[0],
 			source:      n[1],
 			maprange:    n[2],
 		}
-		tmap = append(tmap, tmp)
+		transformMaps[tmLayer] = append(transformMaps[tmLayer], tmap)
 	}
-	return tmap
+
+	return transformMaps
 }
 
 func sourceToDestination(source int, tmaps []TransformMap) int {
@@ -66,33 +78,46 @@ func partOne(lines []string) {
 		}
 		seeds = append(seeds, s)
 	}
-	seedToSoilMaps := linesToTransformMaps(lines, "seed-to-soil map:")
-	soilToFertilizerMaps := linesToTransformMaps(lines, "soil-to-fertilizer map:")
-	fertilizerToWaterMaps := linesToTransformMaps(lines, "fertilizer-to-water map:")
-	waterToLightMaps := linesToTransformMaps(lines, "water-to-light map:")
-	lightToTemperatureMaps := linesToTransformMaps(lines, "light-to-temperature map:")
-	temperatureToHumidityMaps := linesToTransformMaps(lines, "temperature-to-humidity map:")
-	humidityToLocationMaps := linesToTransformMaps(lines, "humidity-to-location map:")
 
 	var mindest, dest int
 	mindest = 1 << 31
+	tmapsarr := linesToTransformMaps(lines[2:])
 	for _, seed := range seeds {
-		dest = sourceToDestination(seed, seedToSoilMaps)
-		dest = sourceToDestination(dest, soilToFertilizerMaps)
-		dest = sourceToDestination(dest, fertilizerToWaterMaps)
-		dest = sourceToDestination(dest, waterToLightMaps)
-		dest = sourceToDestination(dest, lightToTemperatureMaps)
-		dest = sourceToDestination(dest, temperatureToHumidityMaps)
-		dest = sourceToDestination(dest, humidityToLocationMaps)
+		dest = seed
+		for _, tmaps := range tmapsarr {
+			dest = sourceToDestination(dest, tmaps)
+		}
 		if dest < mindest {
 			mindest = dest
 		}
 	}
-	fmt.Println("Minimum location: ", mindest)
+	fmt.Println("Minimum destination location: ", mindest)
+}
+
+func partTwo (lines []string) {
+	seedstr := strings.Split(lines[0][7:], " ")
+	var seedsarr []int
+
+	for _, seed := range seedstr {
+		s, err := strconv.Atoi(seed)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		seedsarr = append(seedsarr, s)
+	}
+	tmapsarr := linesToTransformMaps(lines[2:])
+	for _, tmaps := range tmapsarr {
+		for _, tmap := range tmaps {
+			fmt.Println(tmap)
+		}
+	}
+
 }
 
 func main() {
-	// lines := rf.ReadFile("test.txt")
-	lines := rf.ReadFile("input.txt")
+	lines := rf.ReadFile("test.txt")
+	// lines := rf.ReadFile("input.txt")
 	partOne(lines)
+	partTwo(lines)
 }
